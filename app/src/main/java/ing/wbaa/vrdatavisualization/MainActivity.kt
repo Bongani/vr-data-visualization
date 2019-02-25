@@ -4,7 +4,6 @@ import android.opengl.GLES20
 import android.opengl.Matrix
 import android.os.Bundle
 import android.util.Log
-import com.google.vr.sdk.audio.GvrAudioEngine
 import com.google.vr.sdk.base.*
 import java.io.IOException
 import java.util.*
@@ -24,9 +23,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
 
     private val MIN_TARGET_DISTANCE = 3.0f
     private val MAX_TARGET_DISTANCE = 3.5f
-
-    private val OBJECT_SOUND_FILE = "audio/HelloVR_Loop.ogg"
-    private val SUCCESS_SOUND_FILE = "audio/HelloVR_Activation.ogg"
 
     private val FLOOR_HEIGHT = -2.0f
 
@@ -90,12 +86,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
     private var tempPosition: FloatArray = floatArrayOf(0f,0f,0f,0f)
     private var headRotation: FloatArray = floatArrayOf(0f,0f,0f,0f)
 
-    private var gvrAudioEngine: GvrAudioEngine? = null
-    @Volatile
-    private var sourceId = GvrAudioEngine.INVALID_ID
-    @Volatile
-    private var successSourceId = GvrAudioEngine.INVALID_ID
-
     /**
      * Sets the view to our GvrView and initializes the transformation matrices we will use
      * to render our scene.
@@ -116,9 +106,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         modelTarget = FloatArray(16)
         modelRoom = FloatArray(16)
         headView = FloatArray(16)
-
-        // Initialize 3D audio engine.
-        gvrAudioEngine = GvrAudioEngine(this, GvrAudioEngine.RenderingMode.BINAURAL_HIGH_QUALITY)
 
         random = Random()
     }
@@ -144,16 +131,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         }
 
         setGvrView(gvrView)
-    }
-
-    public override fun onPause() {
-        gvrAudioEngine!!.pause()
-        super.onPause()
-    }
-
-    public override fun onResume() {
-        super.onResume()
-        gvrAudioEngine!!.resume()
     }
 
     override fun onRendererShutdown() {
@@ -187,24 +164,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
 
         Matrix.setIdentityM(modelRoom, 0)
         Matrix.translateM(modelRoom, 0, 0f, FLOOR_HEIGHT, 0f)
-
-        // Avoid any delays during start-up due to decoding of sound files.
-        Thread(
-            Runnable {
-                // Start spatial audio playback of OBJECT_SOUND_FILE at the model position. The
-                // returned sourceId handle is stored and allows for repositioning the sound object
-                // whenever the target position changes.
-                gvrAudioEngine!!.preloadSoundFile(OBJECT_SOUND_FILE)
-                sourceId = gvrAudioEngine!!.createSoundObject(OBJECT_SOUND_FILE)
-                gvrAudioEngine!!.setSoundObjectPosition(
-                    sourceId, targetPosition!![0], targetPosition!![1], targetPosition!![2]
-                )
-                gvrAudioEngine!!.playSound(sourceId, true /* looped playback */)
-                // Preload an unspatialized sound to be played on a successful trigger on the
-                // target.
-                gvrAudioEngine!!.preloadSoundFile(SUCCESS_SOUND_FILE)
-            })
-            .start()
 
         updateTargetPosition()
 
@@ -243,12 +202,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         Matrix.setIdentityM(modelTarget, 0)
         Matrix.translateM(modelTarget, 0, targetPosition!![0], targetPosition!![1], targetPosition!![2])
 
-        // Update the sound location to match it with the new target position.
-        if (sourceId != GvrAudioEngine.INVALID_ID) {
-            gvrAudioEngine!!.setSoundObjectPosition(
-                sourceId, targetPosition!![0], targetPosition!![1], targetPosition!![2]
-            )
-        }
         Util.checkGlError("updateTargetPosition")
     }
 
@@ -265,11 +218,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
 
         // Update the 3d audio engine with the most recent head rotation.
         headTransform.getQuaternion(headRotation!!, 0)
-        gvrAudioEngine!!.setHeadRotation(
-            headRotation!![0], headRotation!![1], headRotation!![2], headRotation!![3]
-        )
-        // Regular update call to GVR audio engine.
-        gvrAudioEngine!!.update()
 
         Util.checkGlError("onNewFrame")
     }
@@ -334,8 +282,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         Log.i(TAG, "onCardboardTrigger")
 
         if (isLookingAtTarget()) {
-            successSourceId = gvrAudioEngine!!.createStereoSound(SUCCESS_SOUND_FILE)
-            gvrAudioEngine!!.playSound(successSourceId, false /* looping disabled */)
             hideTarget()
         }
     }
