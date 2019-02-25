@@ -12,8 +12,6 @@ import javax.microedition.khronos.egl.EGLConfig
 class MainActivity : GvrActivity(), GvrView.StereoRenderer {
     private val TAG = "HelloVrActivity"
 
-    private val TARGET_MESH_COUNT = 3
-
     private val Z_NEAR = 0.01f
     private val Z_FAR = 10.0f
 
@@ -51,9 +49,9 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
 
     private var targetDistance = MAX_TARGET_DISTANCE
 
-    private var targetObjectMeshes: ArrayList<TexturedMesh>? = null
-    private var targetObjectNotSelectedTextures: ArrayList<Texture>? = null
-    private var targetObjectSelectedTextures: ArrayList<Texture>? = null
+    private var targetObjectMeshes: TexturedMesh? = null
+    private var targetObjectNotSelectedTextures: Texture? = null
+    private var targetObjectSelectedTextures: Texture? = null
     private var curTargetObject: Int = 0
 
     private var random: Random? = null
@@ -150,29 +148,11 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         Util.checkGlError("onSurfaceCreated")
 
         try {
-            targetObjectMeshes = ArrayList<TexturedMesh>()
-            targetObjectNotSelectedTextures = ArrayList<Texture>()
-            targetObjectSelectedTextures = ArrayList<Texture>()
-            targetObjectMeshes!!.add(
-                TexturedMesh(this, "Icosahedron.obj", objectPositionParam, objectUvParam)
-            )
-            targetObjectNotSelectedTextures!!.add(Texture(this, "Icosahedron_Blue_BakedDiffuse.png"))
-            targetObjectSelectedTextures!!.add(Texture(this, "Icosahedron_Pink_BakedDiffuse.png"))
-            targetObjectMeshes!!.add(
-                TexturedMesh(this, "QuadSphere.obj", objectPositionParam, objectUvParam)
-            )
-            targetObjectNotSelectedTextures!!.add(Texture(this, "QuadSphere_Blue_BakedDiffuse.png"))
-            targetObjectSelectedTextures!!.add(Texture(this, "QuadSphere_Pink_BakedDiffuse.png"))
-            targetObjectMeshes!!.add(
-                TexturedMesh(this, "TriSphere.obj", objectPositionParam, objectUvParam)
-            )
-            targetObjectNotSelectedTextures!!.add(Texture(this, "TriSphere_Blue_BakedDiffuse.png"))
-            targetObjectSelectedTextures!!.add(Texture(this, "TriSphere_Pink_BakedDiffuse.png"))
+            targetObjectNotSelectedTextures = Texture(this, "QuadSphere_Blue_BakedDiffuse.png")
+            targetObjectMeshes = TexturedMesh(this, "QuadSphere.obj", objectPositionParam, objectUvParam)
         } catch (e: IOException) {
             Log.e(TAG, "Unable to initialize objects", e)
         }
-
-        curTargetObject = random!!.nextInt(TARGET_MESH_COUNT)
     }
 
     /** Updates the target object position.  */
@@ -245,8 +225,8 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
     fun drawTarget() {
         GLES20.glUseProgram(objectProgram)
         GLES20.glUniformMatrix4fv(objectModelViewProjectionParam, 1, false, modelViewProjection, 0)
-        targetObjectNotSelectedTextures!![curTargetObject].bind()
-        targetObjectMeshes!![curTargetObject].draw()
+        targetObjectNotSelectedTextures!!.bind()
+        targetObjectMeshes!!.draw()
         Util.checkGlError("drawTarget")
     }
 
