@@ -64,8 +64,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
 
     private var targetDistance = MAX_TARGET_DISTANCE
 
-    private var room: TexturedMesh? = null
-    private var roomTex: Texture? = null
     private var targetObjectMeshes: ArrayList<TexturedMesh>? = null
     private var targetObjectNotSelectedTextures: ArrayList<Texture>? = null
     private var targetObjectSelectedTextures: ArrayList<Texture>? = null
@@ -81,7 +79,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
     private var modelView: FloatArray = floatArrayOf(0f,0f,0f,0f)
 
     private var modelTarget: FloatArray = floatArrayOf(0f,0f,0f,0f)
-    private var modelRoom: FloatArray = floatArrayOf(0f,0f,0f,0f)
 
     private var tempPosition: FloatArray = floatArrayOf(0f,0f,0f,0f)
     private var headRotation: FloatArray = floatArrayOf(0f,0f,0f,0f)
@@ -104,7 +101,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         tempPosition = FloatArray(4)
         headRotation = FloatArray(4)
         modelTarget = FloatArray(16)
-        modelRoom = FloatArray(16)
         headView = FloatArray(16)
 
         random = Random()
@@ -162,16 +158,11 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
 
         Util.checkGlError("Object program params")
 
-        Matrix.setIdentityM(modelRoom, 0)
-        Matrix.translateM(modelRoom, 0, 0f, FLOOR_HEIGHT, 0f)
-
         updateTargetPosition()
 
         Util.checkGlError("onSurfaceCreated")
 
         try {
-            room = TexturedMesh(this, "CubeRoom.obj", objectPositionParam, objectUvParam)
-            roomTex = Texture(this, "CubeRoom_BakedDiffuse.png")
             targetObjectMeshes = ArrayList<TexturedMesh>()
             targetObjectNotSelectedTextures = ArrayList<Texture>()
             targetObjectSelectedTextures = ArrayList<Texture>()
@@ -244,11 +235,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         Matrix.multiplyMM(modelView, 0, view, 0, modelTarget, 0)
         Matrix.multiplyMM(modelViewProjection, 0, perspective, 0, modelView, 0)
         drawTarget()
-
-        // Set modelView for the room, so it's drawn in the correct location
-        Matrix.multiplyMM(modelView, 0, view, 0, modelRoom, 0)
-        Matrix.multiplyMM(modelViewProjection, 0, perspective, 0, modelView, 0)
-        drawRoom()
     }
 
     override fun onFinishFrame(viewport: Viewport) {}
@@ -264,15 +250,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         }
         targetObjectMeshes!![curTargetObject].draw()
         Util.checkGlError("drawTarget")
-    }
-
-    /** Draw the room.  */
-    fun drawRoom() {
-        GLES20.glUseProgram(objectProgram)
-        GLES20.glUniformMatrix4fv(objectModelViewProjectionParam, 1, false, modelViewProjection, 0)
-        roomTex!!.bind()
-        room!!.draw()
-        Util.checkGlError("drawRoom")
     }
 
     /**
