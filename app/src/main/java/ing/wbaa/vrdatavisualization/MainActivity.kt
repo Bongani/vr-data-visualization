@@ -17,21 +17,8 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
     private val Z_NEAR = 0.01f
     private val Z_FAR = 10.0f
 
-    // Convenience vector for extracting the position from a matrix via multiplication.
-    private val POS_MATRIX_MULTIPLY_VEC = floatArrayOf(0.0f, 0.0f, 0.0f, 1.0f)
-    private val FORWARD_VEC = floatArrayOf(0.0f, 0.0f, -1.0f, 1f)
-
     private val MIN_TARGET_DISTANCE = 3.0f
     private val MAX_TARGET_DISTANCE = 3.5f
-
-    private val FLOOR_HEIGHT = -2.0f
-
-    private val ANGLE_LIMIT = 0.2f
-
-    // The maximum yaw and pitch of the target object, in degrees. After hiding the target, its
-    // yaw will be within [-MAX_YAW, MAX_YAW] and pitch will be within [-MAX_PITCH, MAX_PITCH].
-    private val MAX_YAW = 100.0f
-    private val MAX_PITCH = 25.0f
 
     private val OBJECT_VERTEX_SHADER_CODE = arrayOf(
         "uniform mat4 u_MVP;",
@@ -232,9 +219,24 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         // for calculating the position of the target object.
         val perspective = eye.getPerspective(Z_NEAR, Z_FAR)
 
-        Matrix.multiplyMM(modelView, 0, view, 0, modelTarget, 0)
-        Matrix.multiplyMM(modelViewProjection, 0, perspective, 0, modelView, 0)
-        drawTarget()
+        val points = arrayOf(
+            floatArrayOf(0.0f, 0.0f, -5.0f),
+            floatArrayOf(0.0f, 5.0f, 0.0f),
+            floatArrayOf(5.0f, 0.0f, 0.0f),
+            floatArrayOf(-5.0f, 0.0f, 0.0f),
+            floatArrayOf(5.0f, -5.0f, 0.0f),
+            floatArrayOf(0.0f, 0.0f, 5.0f)
+        )
+
+        val it = points.iterator()
+
+        while (it.hasNext()) {
+            targetPosition = it.next()
+            updateTargetPosition()
+            Matrix.multiplyMM(modelView, 0, view, 0, modelTarget, 0)
+            Matrix.multiplyMM(modelViewProjection, 0, perspective, 0, modelView, 0)
+            drawTarget()
+        }
     }
 
     override fun onFinishFrame(viewport: Viewport) {}
@@ -243,11 +245,7 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
     fun drawTarget() {
         GLES20.glUseProgram(objectProgram)
         GLES20.glUniformMatrix4fv(objectModelViewProjectionParam, 1, false, modelViewProjection, 0)
-        if (isLookingAtTarget()) {
-            targetObjectSelectedTextures!![curTargetObject].bind()
-        } else {
-            targetObjectNotSelectedTextures!![curTargetObject].bind()
-        }
+        targetObjectNotSelectedTextures!![curTargetObject].bind()
         targetObjectMeshes!![curTargetObject].draw()
         Util.checkGlError("drawTarget")
     }
@@ -257,48 +255,5 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
      */
     override fun onCardboardTrigger() {
         Log.i(TAG, "onCardboardTrigger")
-
-        if (isLookingAtTarget()) {
-            hideTarget()
-        }
-    }
-
-    /** Find a new random position for the target object.  */
-    private fun hideTarget() {
-        val rotationMatrix = FloatArray(16)
-        val posVec = FloatArray(4)
-
-        // Matrix.setRotateM takes the angle in degrees, but Math.tan takes the angle in radians, so
-        // yaw is in degrees and pitch is in radians.
-        val yawDegrees = (random!!.nextFloat() - 0.5f) * 2.0f * MAX_YAW
-        val pitchRadians = Math.toRadians(((random!!.nextFloat() - 0.5f) * 2.0f * MAX_PITCH).toDouble()).toFloat()
-
-        Matrix.setRotateM(rotationMatrix, 0, yawDegrees, 0.0f, 1.0f, 0.0f)
-        targetDistance = random!!.nextFloat() * (MAX_TARGET_DISTANCE - MIN_TARGET_DISTANCE) + MIN_TARGET_DISTANCE
-        targetPosition = floatArrayOf(0.0f, 0.0f, -targetDistance)
-        Matrix.setIdentityM(modelTarget, 0)
-        Matrix.translateM(modelTarget, 0, targetPosition!![0], targetPosition!![1], targetPosition!![2])
-        Matrix.multiplyMV(posVec, 0, rotationMatrix, 0, modelTarget, 12)
-
-        targetPosition[0] = posVec[0]
-        targetPosition[1] = Math.tan(pitchRadians.toDouble()).toFloat() * targetDistance
-        targetPosition[2] = posVec[2]
-
-        updateTargetPosition()
-        curTargetObject = random!!.nextInt(TARGET_MESH_COUNT)
-    }
-
-    /**
-     * Check if user is looking at the target object by calculating where the object is in eye-space.
-     *
-     * @return true if the user is looking at the target object.
-     */
-    private fun isLookingAtTarget(): Boolean {
-        // Convert object space to camera space. Use the headView from onNewFrame.
-        Matrix.multiplyMM(modelView, 0, headView, 0, modelTarget, 0)
-        Matrix.multiplyMV(tempPosition, 0, modelView, 0, POS_MATRIX_MULTIPLY_VEC, 0)
-
-        val angle = Util.angleBetweenVectors(tempPosition, FORWARD_VEC)
-        return angle < ANGLE_LIMIT
     }
 }
