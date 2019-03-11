@@ -18,7 +18,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
     private val Z_FAR = 10.0f
 
     private val MIN_TARGET_DISTANCE = 3.0f
-    private val MAX_TARGET_DISTANCE = 3.5f
 
     private val OBJECT_VERTEX_SHADER_CODE = arrayOf(
         "uniform mat4 u_MVP;",
@@ -49,14 +48,8 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
     private var objectUvParam: Int = 0
     private var objectModelViewProjectionParam: Int = 0
 
-    private var targetDistance = MAX_TARGET_DISTANCE
-
     private var targetObjectMeshes: TexturedMesh? = null
     private var targetObjectNotSelectedTextures: Texture? = null
-    private var targetObjectSelectedTextures: Texture? = null
-    private var curTargetObject: Int = 0
-
-    private var random: Random? = null
 
     private var targetPosition: FloatArray = floatArrayOf()
     private var camera: FloatArray = floatArrayOf()
@@ -92,15 +85,13 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         modelTarget = FloatArray(16)
         headView = FloatArray(16)
 
-        random = Random()
-
         doAsync {
             val file = URL("https://topwebers.com/mnist.csv").readText()
             uiThread {
                 val lines = file.split("\n").toTypedArray()
                 var i = 0
                 for(line in lines) {
-                    if(line!="" && i < 100) {
+                    if(line!="" && i < 500) {
                         val nums = line.split(",").toTypedArray()
                         points.add(floatArrayOf(nums[0].toFloat()/2,
                             nums[1].toFloat()/2,
@@ -108,9 +99,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
                         i += 1
                     }
                 }
-                Log.d("hoi", points[0][0].toString())
-                Log.d("hoi", points[0][1].toString())
-                Log.d("hoi", points[0][2].toString())
             }
         }
     }
@@ -224,7 +212,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         val perspective = eye.getPerspective(Z_NEAR, Z_FAR)
 
         val it = points.iterator()
-
         while (it.hasNext()) {
             targetPosition = it.next()
             updateTargetPosition()
