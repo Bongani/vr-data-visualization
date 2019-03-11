@@ -49,7 +49,7 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
     private var objectModelViewProjectionParam: Int = 0
 
     private var targetObjectMeshes: TexturedMesh? = null
-    private var targetObjectNotSelectedTextures: Texture? = null
+    private var targetObjectNotSelectedTextures: ArrayList<Texture>? = null
 
     private var targetPosition: FloatArray = floatArrayOf()
     private var camera: FloatArray = floatArrayOf()
@@ -64,6 +64,8 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
     private var headRotation: FloatArray = floatArrayOf(0f,0f,0f,0f)
 
     private var points = ArrayList<FloatArray>()
+    private var labels = ArrayList<Int>()
+    private var curTargetObject: Int = 0
 
     /**
      * Sets the view to our GvrView and initializes the transformation matrices we will use
@@ -91,13 +93,17 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
                 val lines = file.split("\n").toTypedArray()
                 var i = 0
                 for(line in lines) {
-                    if(line!="" && i < 500) {
+                    Log.d("hoi2",i.toString())
+                    Log.d("hoi2",(i%4).toString())
+                    if(line!="" && i < 2000 && i%4==0) {
                         val nums = line.split(",").toTypedArray()
                         points.add(floatArrayOf(nums[0].toFloat()/2,
                             nums[1].toFloat()/2,
                             nums[2].toFloat()/2))
-                        i += 1
+                        labels.add(nums[3].toFloat().toInt())
+                        Log.d("hoi1", nums[3])
                     }
+                i += 1
                 }
             }
         }
@@ -158,9 +164,11 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         updateTargetPosition()
 
         Util.checkGlError("onSurfaceCreated")
-
+        Log.d("hoi", "onsurfacecreated")
         try {
-            targetObjectNotSelectedTextures = Texture(this, "QuadSphere_Blue_BakedDiffuse.png")
+            targetObjectNotSelectedTextures = ArrayList<Texture>()
+            targetObjectNotSelectedTextures!!.add(Texture(this, "QuadSphere_Blue_BakedDiffuse.png"))
+            targetObjectNotSelectedTextures!!.add(Texture(this, "QuadSphere_Pink_BakedDiffuse.png"))
             targetObjectMeshes = TexturedMesh(this, "QuadSphere.obj", objectPositionParam, objectUvParam)
         } catch (e: IOException) {
             Log.e(TAG, "Unable to initialize objects", e)
@@ -212,8 +220,10 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         val perspective = eye.getPerspective(Z_NEAR, Z_FAR)
 
         val it = points.iterator()
+        val it_label = labels.iterator()
         while (it.hasNext()) {
             targetPosition = it.next()
+            curTargetObject = it_label.next()
             updateTargetPosition()
             Matrix.multiplyMM(modelView, 0, view, 0, modelTarget, 0)
             Matrix.multiplyMM(modelViewProjection, 0, perspective, 0, modelView, 0)
@@ -227,7 +237,8 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
     fun drawTarget() {
         GLES20.glUseProgram(objectProgram)
         GLES20.glUniformMatrix4fv(objectModelViewProjectionParam, 1, false, modelViewProjection, 0)
-        targetObjectNotSelectedTextures!!.bind()
+        targetObjectNotSelectedTextures!![curTargetObject].bind()
+        Log.d("hoi", curTargetObject.toString())
         targetObjectMeshes!!.draw()
         Util.checkGlError("drawTarget")
     }
