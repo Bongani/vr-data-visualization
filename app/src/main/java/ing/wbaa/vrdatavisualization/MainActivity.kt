@@ -8,6 +8,8 @@ import com.google.vr.sdk.base.*
 import java.io.IOException
 import java.util.*
 import javax.microedition.khronos.egl.EGLConfig
+import org.jetbrains.anko.*
+import java.net.URL
 
 class MainActivity : GvrActivity(), GvrView.StereoRenderer {
     private val TAG = "HelloVrActivity"
@@ -68,6 +70,8 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
     private var tempPosition: FloatArray = floatArrayOf(0f,0f,0f,0f)
     private var headRotation: FloatArray = floatArrayOf(0f,0f,0f,0f)
 
+    private var points = ArrayList<FloatArray>()
+
     /**
      * Sets the view to our GvrView and initializes the transformation matrices we will use
      * to render our scene.
@@ -89,6 +93,26 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         headView = FloatArray(16)
 
         random = Random()
+
+        doAsync {
+            val file = URL("https://topwebers.com/mnist.csv").readText()
+            uiThread {
+                val lines = file.split("\n").toTypedArray()
+                var i = 0
+                for(line in lines) {
+                    if(line!="" && i < 100) {
+                        val nums = line.split(",").toTypedArray()
+                        points.add(floatArrayOf(nums[0].toFloat()/2,
+                            nums[1].toFloat()/2,
+                            nums[2].toFloat()/2))
+                        i += 1
+                    }
+                }
+                Log.d("hoi", points[0][0].toString())
+                Log.d("hoi", points[0][1].toString())
+                Log.d("hoi", points[0][2].toString())
+            }
+        }
     }
 
     fun initializeGvrView() {
@@ -198,15 +222,6 @@ class MainActivity : GvrActivity(), GvrView.StereoRenderer {
         // Build the ModelView and ModelViewProjection matrices
         // for calculating the position of the target object.
         val perspective = eye.getPerspective(Z_NEAR, Z_FAR)
-
-        val points = arrayOf(
-            floatArrayOf(0.0f, 0.0f, -5.0f),
-            floatArrayOf(0.0f, 5.0f, 0.0f),
-            floatArrayOf(5.0f, 0.0f, 0.0f),
-            floatArrayOf(-5.0f, 0.0f, 0.0f),
-            floatArrayOf(5.0f, -5.0f, 0.0f),
-            floatArrayOf(0.0f, 0.0f, 5.0f)
-        )
 
         val it = points.iterator()
 
